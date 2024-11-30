@@ -10,7 +10,7 @@ struct HeapNode {
 
 class MinHeap {
 
-    HeapNode* harr;
+    HeapNode* heap;
     int heap_size;
 
 public:
@@ -23,7 +23,7 @@ public:
     HeapNode getMin();
 
     void MinHeapify(int);
-    void replaceMin(HeapNode x)
+    void replaceMin(HeapNode x);
     void swap(HeapNode* x, HeapNode* y);
 };
 

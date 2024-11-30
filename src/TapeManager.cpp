@@ -1,27 +1,19 @@
 #include "TapeManager.h"
 
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 
 namespace fs = std::filesystem;
 
-TapeManager::TapeManager(std::string input_tape_name, size_t tape_len, size_t ram_bytes) {
+TapeManager::TapeManager(std::string input_tape_name, size_t ram_bytes) {
     this->input_tape_name = input_tape_name;
-    this->tape_len = tape_len;
-    this->ram_byes = ram_byes;
+    this->ram_bytes = ram_bytes;
 
-    input_tape_file = fopen(input_tape_name.c_str(), "rb");
-    if (!input_tape_file) {
-        std::cerr << "Tape error!" << std::endl;
-        exit(1);
-    }
-
-    tmp_tapes_amount = std::floor(tape_len * sizeof(int32_t) / ram_bytes);
-    elems_in_one_tape = tape_len / tmp_tapes_amount;
-
-    tmp_tapes = new FILE*[tmp_tapes_amount];
+    createTmpTapes();
 }
 
 void TapeManager::clearTmpDir(std::string dir_name) {
@@ -47,6 +39,8 @@ void TapeManager::clearTmpDir(std::string dir_name) {
 }
 
 void TapeManager::createTmpDir() {
+    clearTmpDir(TMP_DIR_NAME);
+
     std::filesystem::path dir = TMP_DIR_NAME;
 
     if (!std::filesystem::exists(dir)) {
@@ -61,41 +55,51 @@ void TapeManager::createTmpDir() {
     }
 }
 
+void TapeManager::writeChunk(int32_t chunk[], size_t chunk_size, int32_t elems_in_chunk, size_t tape_number) {
+    std::sort(chunk, chunk + elems_in_chunk);
+    std::ofstream tmp_tape(fs::path(TMP_DIR_NAME) / ("tape_" + std::to_string(tape_number)));
+
+    for (size_t j = 0; j < elems_in_chunk; j++) {
+        tmp_tape << chunk[j] << " ";
+    }
+    tmp_tape.close();
+}
+
 void TapeManager::createTmpTapes() {
+    // if (ram_bytes < sizeof(HeapNode * num_of_initial_runs))
+
+    std::ifstream input_tape_file(input_tape_name);
+    if (!input_tape_file) {
+        std::cerr << "Input tape error!" << std::endl;
+        exit(1);
+    }
+
     createTmpDir();
 
-    for (size_t i = 0; i < tmp_tapes_amount; i++) {
-        tmp_tapes[i] = fopen((TMP_DIR_NAME + std::to_string(i)).c_str(), "wb");
-        if (!tmp_tapes[i]) {
-            std::cerr << "Temp tape error!" << std::endl;
-            exit(1);
-        }
+    int32_t number;
+    int32_t chunck_size = ram_bytes / sizeof(int32_t);
 
-        int32_t chunk[elems_in_one_tape];
-        for (size_t j = 0; j < elems_in_one_tape; j++) {
-            int32_t num;
-            if (!fread(&num, sizeof(num), 1, input_tape_file)) {
-                if (!feof(input_tape_file)) {
-                    std::cerr << "Input tape reading error!" << std::endl;
-                    exit(1);
-                }
-            }
-            chunk[j] = num;
-        }
+    size_t idx = 0;
+    int32_t chunk[chunck_size];
+    int32_t elems_in_chunk = 0;
+    int32_t tmp_tapes_count = 0;
 
-        if (!fwrite(chunk, sizeof(int32_t), elems_in_one_tape, tmp_tapes[i])) {
-            std::cerr << "Temp tape writing error!" << std::endl;
-            exit(1);
-        }
+    while (input_tape_file >> number) {
+        if (idx >= chunck_size) {
+            writeChunk(chunk, chunck_size, elems_in_chunk, tmp_tapes_count);
 
-        fclose(tmp_tapes[i]);
+            idx = 0;
+            elems_in_chunk = 0;
+            tmp_tapes_count++;
+        }
+        chunk[idx] = number;
+        elems_in_chunk++;
+        idx++;
     }
+    writeChunk(chunk, chunck_size, elems_in_chunk, tmp_tapes_count);
+    input_tape_file.close();
 }
 
 TapeManager::~TapeManager() {
-    for (size_t i = 0; i < tmp_tapes_amount; i++) {
-        fclose(tmp_tapes[i]);
-    }
-    delete[] tmp_tapes;
-    fclose(input_tape_file);
+    // TODO clear heap
 }
