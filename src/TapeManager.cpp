@@ -22,12 +22,10 @@ void TapeManager::clearTmpDir(std::string dir_name) {
             for (const auto& entry : fs::directory_iterator(dir_name)) {
                 const auto& path = entry.path();
 
-                if (fs::is_directory(path)) {
+                if (fs::is_directory(path))
                     clearTmpDir(path);
-                    fs::remove(path);
-                } else {
-                    fs::remove(path);
-                }
+
+                fs::remove(path);
             }
         }
     } catch (const fs::filesystem_error& e) {
@@ -46,7 +44,7 @@ void TapeManager::createTmpDir() {
     if (!std::filesystem::exists(dir)) {
         if (!std::filesystem::create_directory(dir)) {
             std::ostringstream oss;
-            oss << "Failed to create directory " << TMP_DIR_NAME << ".";
+            oss << "Failed to create directory \'" << TMP_DIR_NAME << "\'.";
             std::cerr << oss.str() << std::endl;
             exit(1);
         }
@@ -59,6 +57,11 @@ void TapeManager::writeChunk(int32_t chunk[], size_t chunk_size, int32_t elems_i
     std::sort(chunk, chunk + elems_in_chunk);
     std::ofstream tmp_tape(fs::path(TMP_DIR_NAME) / ("tape_" + std::to_string(tape_number)));
 
+    if (!tmp_tape.is_open()) {
+        std::cerr << "Temp tape error!" << std::endl;
+        exit(1);
+    }
+
     for (size_t j = 0; j < elems_in_chunk; j++) {
         tmp_tape << chunk[j] << " ";
     }
@@ -66,10 +69,8 @@ void TapeManager::writeChunk(int32_t chunk[], size_t chunk_size, int32_t elems_i
 }
 
 void TapeManager::createTmpTapes() {
-    // if (ram_bytes < sizeof(HeapNode * num_of_initial_runs))
-
     std::ifstream input_tape_file(input_tape_name);
-    if (!input_tape_file) {
+    if (!input_tape_file.is_open()) {
         std::cerr << "Input tape error!" << std::endl;
         exit(1);
     }
@@ -101,5 +102,5 @@ void TapeManager::createTmpTapes() {
 }
 
 TapeManager::~TapeManager() {
-    // TODO clear heap
+    clearTmpDir(TMP_DIR_NAME);
 }

@@ -2,29 +2,48 @@
 #define MINHEAP_H
 
 #include <cstdint>
+#include <cstddef>
 
 struct HeapNode {
     int32_t number;
-    int file_idx;
+    size_t file_idx;
 };
 
 class MinHeap {
-
+private:
     HeapNode* heap;
-    int heap_size;
+    size_t heap_size;
+    size_t capacity;
+
+    void heapify(size_t i);
 
 public:
+    MinHeap(size_t heap_size);
 
-    MinHeap(HeapNode a[], int size);
-
-    int left(int i);
-    int right(int i);
-
+    void insert(HeapNode node);
+    HeapNode extractMin();
     HeapNode getMin();
 
-    void MinHeapify(int);
-    void replaceMin(HeapNode x);
-    void swap(HeapNode* x, HeapNode* y);
+    ~MinHeap();
 };
+
+// class MinHeap {
+//
+//     HeapNode* heap;
+//     int heap_size;
+//
+//     int left(size_t i);
+//     int right(size_t i);
+//     void swap(HeapNode* x, HeapNode* y);
+//     void replaceMin(HeapNode x);
+//     void MinHeapify(size_t);
+//
+// public:
+//
+//     MinHeap(size_t size);
+//     HeapNode getMin();
+//
+//     ~MinHeap();
+// };
 
 #endif //MINHEAP_H
