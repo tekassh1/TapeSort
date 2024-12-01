@@ -23,8 +23,8 @@ class TapeManager : public ITapeManager {
 
     std::vector<std::ifstream> tmp_tapes;
 
-    void clearTmpDir(std::string dir_name) override;
-    void createTmpDir() override;
+    void clearTmpDir(std::string dir_name);
+    void createTmpDir();
 
     void writeChunk(int32_t chunk[], int32_t elems_in_chunk, size_t tape_number);
 
@@ -32,13 +32,14 @@ class TapeManager : public ITapeManager {
     int write_delay = -1;
     int move_delay = -1;
 
-    void parseConfig();
+    void parseConfig() override;
 
    public:
     void createTmpTapes() override;
     void prepareTapes() override;
     void closeTmp() override;
-    int getTempTapesAmount() override;
+
+    int getTempTapesAmount();
 
     TapeManager(std::string input_tape_name, std::string out_tape_name, size_t ram_bytes);
 
@@ -46,14 +47,14 @@ class TapeManager : public ITapeManager {
     int getWriteDelay();
     int getMoveDelay();
 
-    void emulateReadDelay();
-    void emulateWriteDelay();
-    void emulateSequentialReadDelay(int repeats);
-    void emulateSequentialWriteDelay(int repeats);
+    void emulateReadDelay() override;
+    void emulateWriteDelay() override;
+    void emulateSequentialReadDelay(int repeats) override;
+    void emulateSequentialWriteDelay(int repeats) override;
 
-    std::optional<int32_t> readFromTmpTape(int tape_idx);
-    int32_t readFromInputTape();
-    void writeToOutTape(int32_t value);
+    std::optional<int32_t> readFromTmpTape(int tape_idx) override;
+    int32_t readFromInputTape() override;
+    void writeToOutTape(int32_t value) override;
 
     ~TapeManager();
 };

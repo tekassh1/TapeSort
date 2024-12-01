@@ -22,8 +22,7 @@ private:
 
 	MinHeap heap;
 
-	void prepareTapes();
-	bool checkEnoughRam();
+	void checkEnoughRam();
 
 public:
 	Sorter(std::string in_file, std::string out_file, size_t ram_bytes);

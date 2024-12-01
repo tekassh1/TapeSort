@@ -11,24 +11,20 @@ Sorter::Sorter(std::string in_file, std::string out_file, size_t ram_bytes)
     : tapeManager(in_file, out_file, ram_bytes),
       heap(ram_bytes / sizeof(HeapNode)),
       temp_dir_name(TMP_DIR_NAME) {
-
     this->ram_bytes = ram_bytes;
 }
 
-bool Sorter::checkEnoughRam() {
+void Sorter::checkEnoughRam() {
     if (tapeManager.getTempTapesAmount() * sizeof(HeapNode) > ram_bytes) {
-        std::cerr << "Too low memory! Sorting is impossible." << std::endl;
-        return false;
+        throw std::runtime_error("Too low memory! Sorting is impossible.");
     }
-    return true;
 }
 
 void Sorter::sortTapes() {
     tapeManager.createTmpTapes();
     tapeManager.prepareTapes();
 
-    if (!checkEnoughRam())
-        return;
+    checkEnoughRam();
 
     for (size_t i = 0; i < tapeManager.getTempTapesAmount(); i++) {
         tapeManager.emulateReadDelay();

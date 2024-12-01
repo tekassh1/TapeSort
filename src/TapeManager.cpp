@@ -21,17 +21,15 @@ TapeManager::TapeManager(std::string input_tape_name, std::string out_tape_name,
 
     std::ifstream in_tape(input_tape_name);
     if (!in_tape.is_open()) {
-        std::cerr << "Error opening input file!" << std::endl;
         closeTmp();
-        exit(1);  // TODO очистить кучу
+        throw std::runtime_error("Error opening input file!");
     }
     this->in = std::move(in_tape);
 
     std::ofstream out_tape(out_tape_name);
     if (!out_tape.is_open()) {
-        std::cerr << "Error opening output file!" << std::endl;
         closeTmp();
-        exit(1);  // TODO очистить кучу
+        throw std::runtime_error( "Error opening output file!");
     }
     this->out = std::move(out_tape);
 }
@@ -53,8 +51,7 @@ void TapeManager::parseConfig() {
     if (!config_file.is_open()) {
         std::ostringstream oss;
         oss << "Error reading config file: \'" << CONFIG_FILE_NAME << "\'.";
-        std::cerr << oss.str() << std::endl;
-        exit(1);
+        throw std::runtime_error(oss.str());
     }
 
     std::string line;
@@ -64,8 +61,7 @@ void TapeManager::parseConfig() {
             std::ostringstream oss;
             oss << "Wrong config file: \'" << CONFIG_FILE_NAME
                 << "\'\nSyntax: <parameter>:<value> (in nanoseconds, new line for each param).";
-            std::cerr << oss.str() << std::endl;
-            exit(1);
+            throw std::runtime_error(oss.str());
         }
 
         if (tokens[0] == "read_delay")
@@ -80,8 +76,7 @@ void TapeManager::parseConfig() {
         oss << "Wrong config file: \'" << CONFIG_FILE_NAME
             << "\'\nYou should pass `read_delay`, `write_delay` and `move_delay`"
                " parameters in config file. \nSyntax: <parameter>:<value> (in nanoseconds, new line for each param).";
-        std::cerr << oss.str() << std::endl;
-        exit(1);
+        throw std::runtime_error(oss.str());
     }
 }
 
@@ -130,9 +125,8 @@ void TapeManager::prepareTapes() {
             std::ifstream tmp_tape(fs::path(TMP_DIR_NAME) / filename);
 
             if (!tmp_tape.is_open()) {
-                std::cerr << "Temp tape error!" << std::endl;
                 closeTmp();
-                exit(1);
+                throw std::runtime_error("Error opening tmp tape!");
             }
 
             tmp_tapes.push_back(std::move(tmp_tape));
@@ -155,8 +149,7 @@ void TapeManager::clearTmpDir(std::string dir_name) {
     } catch (const fs::filesystem_error& e) {
         std::ostringstream oss;
         oss << "Error while clearing temp directory: " << TMP_DIR_NAME << ".";
-        std::cerr << oss.str() << std::endl;
-        exit(1);
+        throw std::runtime_error(oss.str());
     }
 }
 
@@ -167,8 +160,7 @@ void TapeManager::createTmpDir() {
         if (!std::filesystem::create_directory(dir)) {
             std::ostringstream oss;
             oss << "Failed to create directory \'" << TMP_DIR_NAME << "\'.";
-            std::cerr << oss.str() << std::endl;
-            exit(1);
+            throw std::runtime_error(oss.str());
         }
     } else {
         clearTmpDir(TMP_DIR_NAME);
@@ -184,8 +176,7 @@ void TapeManager::writeChunk(int32_t chunk[], int32_t elems_in_chunk, size_t tap
     std::ofstream tmp_tape(fs::path(TMP_DIR_NAME) / ("tape_" + std::to_string(tape_number)));
 
     if (!tmp_tape.is_open()) {
-        std::cerr << "Temp tape error!" << std::endl;
-        exit(1);
+        throw std::runtime_error("Error opening tmp tape!");
     }
 
     for (size_t j = 0; j < elems_in_chunk; j++) {
@@ -197,8 +188,7 @@ void TapeManager::writeChunk(int32_t chunk[], int32_t elems_in_chunk, size_t tap
 void TapeManager::createTmpTapes() {
     std::ifstream input_tape_file(input_tape_name);
     if (!input_tape_file.is_open()) {
-        std::cerr << "Input tape error!" << std::endl;
-        exit(1);
+        throw std::runtime_error("Error opening input tape!");
     }
 
     createTmpDir();

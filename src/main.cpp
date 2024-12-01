@@ -16,8 +16,13 @@ int main(int argc, char* argv[]) {
     std::string output_file = argv[2];
     size_t bytes_amount = std::stoi(argv[3]);
 
-    Sorter sorter(input_file, output_file, bytes_amount);
-    sorter.sortTapes();
+    try {
+        Sorter sorter(input_file, output_file, bytes_amount);
+        sorter.sortTapes();
+    }
+    catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+    }
 
     return 0;
 }
