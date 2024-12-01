@@ -37,8 +37,6 @@ void TapeManager::clearTmpDir(std::string dir_name) {
 }
 
 void TapeManager::createTmpDir() {
-    clearTmpDir(TMP_DIR_NAME);
-
     std::filesystem::path dir = TMP_DIR_NAME;
 
     if (!std::filesystem::exists(dir)) {
@@ -63,7 +61,7 @@ void TapeManager::writeChunk(int32_t chunk[], size_t chunk_size, int32_t elems_i
     }
 
     for (size_t j = 0; j < elems_in_chunk; j++) {
-        tmp_tape << chunk[j] << " ";
+        tmp_tape << chunk[j] << std::endl;
     }
     tmp_tape.close();
 }
@@ -86,6 +84,10 @@ void TapeManager::createTmpTapes() {
     int32_t tmp_tapes_count = 0;
 
     while (input_tape_file >> number) {
+        chunk[idx] = number;
+        elems_in_chunk++;
+        idx++;
+
         if (idx >= chunck_size) {
             writeChunk(chunk, chunck_size, elems_in_chunk, tmp_tapes_count);
 
@@ -93,11 +95,9 @@ void TapeManager::createTmpTapes() {
             elems_in_chunk = 0;
             tmp_tapes_count++;
         }
-        chunk[idx] = number;
-        elems_in_chunk++;
-        idx++;
     }
-    writeChunk(chunk, chunck_size, elems_in_chunk, tmp_tapes_count);
+    if (elems_in_chunk)
+        writeChunk(chunk, chunck_size, elems_in_chunk, tmp_tapes_count);
     input_tape_file.close();
 }
 

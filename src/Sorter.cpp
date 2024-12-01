@@ -1,5 +1,7 @@
 #include "Sorter.h"
 
+#include <TapeManager.h>
+
 #include <filesystem>
 #include <iostream>
 
@@ -21,7 +23,7 @@ void Sorter::prepareTapes() {
     for (const auto& entry : fs::directory_iterator(temp_dir_name)) {
         if (entry.is_regular_file()) {
             std::string filename = entry.path().filename().string();
-            std::ifstream tmp_tape(filename);
+            std::ifstream tmp_tape(fs::path(TMP_DIR_NAME) / filename);
 
             if (!tmp_tape.is_open()) {
                 std::cerr << "Temp tape error!" << std::endl;
@@ -58,26 +60,19 @@ void Sorter::sortTapes(std::string out_filename) {
     for (size_t i = 0; i < tmp_tapes.size(); i++) {
         int32_t num;
         tmp_tapes[i] >> num;
-        heap.insert(HeapNode{.file_idx = i, .number = num});
+        heap.insert(HeapNode{.number = num, .file_idx = i});
     }
 
-    bool read = false;
-
     while (true) {
-        HeapNode min = heap.getMin(); // TODO проверить, если куча пустая (тогда все числа в файлах закончились)
-        out << min.number << std::endl;
+        std::optional<HeapNode> min = heap.extractMin();
+        if (!min.has_value())
+            break;
 
-        heap.extractMin();
+        out << min->number << std::endl;
 
         int32_t num;
-        if (tmp_tapes[min.file_idx] >> num) {
-            read = true;
-            heap.insert(HeapNode{.file_idx = min.file_idx, .number = num});
-        }
-
-        if (!read) {
-            continue;
-            break; // TODO точно ???
+        if (tmp_tapes[min->file_idx] >> num) {
+            heap.insert(HeapNode{.number = num, .file_idx = min->file_idx});
         }
     }
 }

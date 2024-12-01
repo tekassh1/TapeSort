@@ -1,10 +1,12 @@
 #include "MinHeap.h"
 
 #include <algorithm>
+#include <iostream>
+#include <optional>
 #include <stdexcept>
 
 MinHeap::MinHeap(size_t capacity) {
-    heap = new HeapNode[heap_size];
+    heap = new HeapNode[capacity];
     heap_size = 0;
     this->capacity = capacity;
 }
@@ -36,16 +38,20 @@ void MinHeap::insert(HeapNode node) {
     heap[heap_size] = node;
     heap_size++;
 
-    size_t i = heap_size;
+    size_t i = heap_size - 1;
     while (i != 0 && heap[(i - 1) / 2].number > heap[i].number) {
         std::swap(heap[i], heap[(i - 1) / 2]);
         i = (i - 1) / 2;
     }
 }
 
-HeapNode MinHeap::extractMin() {
+std::optional<HeapNode> MinHeap::extractMin() {
+    // for (auto i = 0; i < heap_size; i++) {
+    //     HeapNode node =  heap[i];
+    //     std::cout << node << " ";
+    // }
     if (heap_size <= 0) {
-        throw std::underflow_error("Heap underflow: the heap is empty"); // TODO обработать
+        return std::nullopt;
     }
 
     if (heap_size == 1) {
@@ -63,9 +69,9 @@ HeapNode MinHeap::extractMin() {
     return min;
 }
 
-HeapNode MinHeap::getMin() {
+std::optional<HeapNode> MinHeap::getMin() {
     if (heap_size <= 0) {
-        throw std::underflow_error("Heap is empty");
+        return std::nullopt;
     }
     return heap[0];
 }
