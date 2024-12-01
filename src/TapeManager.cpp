@@ -60,6 +60,13 @@ void TapeManager::parseConfig() {
     std::string line;
     while (std::getline(config_file, line)) {
         std::vector<std::string> tokens = split(line, ':');
+        if (tokens.size() != 2) {
+            std::ostringstream oss;
+            oss << "Wrong config file: \'" << CONFIG_FILE_NAME
+                << "\'\nSyntax: <parameter>:<value> (in nanoseconds, new line for each param).";
+            std::cerr << oss.str() << std::endl;
+            exit(1);
+        }
 
         if (tokens[0] == "read_delay")
             read_delay = std::stoi(tokens[1]);
