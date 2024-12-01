@@ -5,17 +5,35 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <thread>
 
 namespace fs = std::filesystem;
 
-TapeManager::TapeManager(std::string input_tape_name, size_t ram_bytes) {
+TapeManager::TapeManager(std::string input_tape_name, std::string out_tape_name, size_t ram_bytes) {
     this->input_tape_name = input_tape_name;
+    this->out_tape_name = out_tape_name;
+
     this->ram_bytes = ram_bytes;
 
     parseConfig();
-    createTmpTapes();
+
+    std::ifstream in_tape(input_tape_name);
+    if (!in_tape.is_open()) {
+        std::cerr << "Error opening input file!" << std::endl;
+        closeTmp();
+        exit(1);  // TODO очистить кучу
+    }
+    this->in = std::move(in_tape);
+
+    std::ofstream out_tape(out_tape_name);
+    if (!out_tape.is_open()) {
+        std::cerr << "Error opening output file!" << std::endl;
+        closeTmp();
+        exit(1);  // TODO очистить кучу
+    }
+    this->out = std::move(out_tape);
 }
 
 std::vector<std::string> split(const std::string& str, char delimiter) {
@@ -29,10 +47,6 @@ std::vector<std::string> split(const std::string& str, char delimiter) {
 
     return result;
 }
-
-int TapeManager::read_delay = -1;
-int TapeManager::write_delay = -1;
-int TapeManager::move_delay = -1;
 
 void TapeManager::parseConfig() {
     std::ifstream config_file(CONFIG_FILE_NAME);
@@ -76,6 +90,49 @@ int TapeManager::getMoveDelay() {
     return move_delay;
 }
 
+void TapeManager::emulateReadDelay() {
+    std::this_thread::sleep_for(std::chrono::nanoseconds(move_delay));
+    std::this_thread::sleep_for(std::chrono::nanoseconds(read_delay));
+}
+
+void TapeManager::emulateWriteDelay() {
+    std::this_thread::sleep_for(std::chrono::nanoseconds(move_delay));
+    std::this_thread::sleep_for(std::chrono::nanoseconds(write_delay));
+}
+
+void TapeManager::emulateSequentialReadDelay(int repeats) {
+    std::this_thread::sleep_for(std::chrono::nanoseconds(repeats * move_delay));
+    std::this_thread::sleep_for(std::chrono::nanoseconds(repeats * read_delay));
+}
+
+void TapeManager::emulateSequentialWriteDelay(int repeats) {
+    std::this_thread::sleep_for(std::chrono::nanoseconds(repeats * move_delay));
+    std::this_thread::sleep_for(std::chrono::nanoseconds(repeats * write_delay));
+}
+
+void TapeManager::closeTmp() {
+    for (auto& tape : tmp_tapes) {
+        tape.close();
+    }
+}
+
+void TapeManager::prepareTapes() {
+    for (const auto& entry : fs::directory_iterator(TMP_DIR_NAME)) {
+        if (entry.is_regular_file()) {
+            std::string filename = entry.path().filename().string();
+            std::ifstream tmp_tape(fs::path(TMP_DIR_NAME) / filename);
+
+            if (!tmp_tape.is_open()) {
+                std::cerr << "Temp tape error!" << std::endl;
+                closeTmp();
+                exit(1);
+            }
+
+            tmp_tapes.push_back(std::move(tmp_tape));
+        }
+    }
+}
+
 void TapeManager::clearTmpDir(std::string dir_name) {
     try {
         if (fs::exists(dir_name) && fs::is_directory(dir_name)) {
@@ -111,7 +168,11 @@ void TapeManager::createTmpDir() {
     }
 }
 
-void TapeManager::writeChunk(int32_t chunk[], size_t chunk_size, int32_t elems_in_chunk, size_t tape_number) {
+int TapeManager::getTempTapesAmount() {
+    return tmp_tapes.size();
+}
+
+void TapeManager::writeChunk(int32_t chunk[], int32_t elems_in_chunk, size_t tape_number) {
     std::sort(chunk, chunk + elems_in_chunk);
     std::ofstream tmp_tape(fs::path(TMP_DIR_NAME) / ("tape_" + std::to_string(tape_number)));
 
@@ -123,10 +184,7 @@ void TapeManager::writeChunk(int32_t chunk[], size_t chunk_size, int32_t elems_i
     for (size_t j = 0; j < elems_in_chunk; j++) {
         tmp_tape << chunk[j] << std::endl;
     }
-    std::this_thread::sleep_for(std::chrono::nanoseconds(getMoveDelay() * (elems_in_chunk - 1))); // emulate tape delays
-    std::this_thread::sleep_for(std::chrono::nanoseconds(getWriteDelay() * elems_in_chunk));
-
-    tmp_tape.close();
+    emulateSequentialWriteDelay(elems_in_chunk);
 }
 
 void TapeManager::createTmpTapes() {
@@ -147,15 +205,14 @@ void TapeManager::createTmpTapes() {
     int32_t tmp_tapes_count = 0;
 
     while (input_tape_file >> number) {
-        std::this_thread::sleep_for(std::chrono::nanoseconds(getMoveDelay())); // emulate tape delays
-        std::this_thread::sleep_for(std::chrono::nanoseconds(getReadDelay()));
+        emulateReadDelay();
 
         chunk[idx] = number;
         elems_in_chunk++;
         idx++;
 
         if (idx >= chunck_size) {
-            writeChunk(chunk, chunck_size, elems_in_chunk, tmp_tapes_count);
+            writeChunk(chunk, elems_in_chunk, tmp_tapes_count);
 
             idx = 0;
             elems_in_chunk = 0;
@@ -163,10 +220,29 @@ void TapeManager::createTmpTapes() {
         }
     }
     if (elems_in_chunk)
-        writeChunk(chunk, chunck_size, elems_in_chunk, tmp_tapes_count);
+        writeChunk(chunk, elems_in_chunk, tmp_tapes_count);
     input_tape_file.close();
 }
 
+std::optional<int32_t> TapeManager::readFromTmpTape(int tape_idx) {
+    int32_t number;
+    if (tmp_tapes[tape_idx] >> number) {
+        return std::make_optional(number);
+    }
+    return std::nullopt;
+}
+
+void TapeManager::writeToOutTape(int32_t value) {
+    out << value << std::endl;
+}
+
+int32_t TapeManager::readFromInputTape() {
+    int32_t value;
+    in >> value;
+    return value;
+}
+
 TapeManager::~TapeManager() {
+    closeTmp();
     clearTmpDir(TMP_DIR_NAME);
 }

@@ -4,12 +4,10 @@
 #include "TapeManager.h"
 
 int main() {
-    std::string out_dir_name = "Out";
-
     size_t ram_bytes = 20000;
 
-    TapeManager tape_manager("InputTape", ram_bytes);
-    Sorter sorter(TMP_DIR_NAME, ram_bytes);
-    sorter.sortTapes(out_dir_name);
+    Sorter sorter("InputTape", "Out", ram_bytes);
+    sorter.sortTapes();
+
     return 0;
 }
