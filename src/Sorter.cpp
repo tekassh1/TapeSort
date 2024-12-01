@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <thread>
 
 namespace fs = std::filesystem;
 
@@ -58,6 +59,9 @@ void Sorter::sortTapes(std::string out_filename) {
     }
 
     for (size_t i = 0; i < tmp_tapes.size(); i++) {
+        std::this_thread::sleep_for(std::chrono::nanoseconds(TapeManager::getMoveDelay()));  // emulate tape delays
+        std::this_thread::sleep_for(std::chrono::nanoseconds(TapeManager::getReadDelay()));
+
         int32_t num;
         tmp_tapes[i] >> num;
         heap.insert(HeapNode{.number = num, .file_idx = i});
@@ -68,10 +72,16 @@ void Sorter::sortTapes(std::string out_filename) {
         if (!min.has_value())
             break;
 
+        std::this_thread::sleep_for(std::chrono::nanoseconds(TapeManager::getMoveDelay()));  // emulate tape delays
+        std::this_thread::sleep_for(std::chrono::nanoseconds(TapeManager::getWriteDelay()));
         out << min->number << std::endl;
 
         int32_t num;
+
         if (tmp_tapes[min->file_idx] >> num) {
+            std::this_thread::sleep_for(std::chrono::nanoseconds(TapeManager::getMoveDelay()));  // emulate tape delays
+            std::this_thread::sleep_for(std::chrono::nanoseconds(TapeManager::getReadDelay()));
+
             heap.insert(HeapNode{.number = num, .file_idx = min->file_idx});
         }
     }

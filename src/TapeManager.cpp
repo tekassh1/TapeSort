@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <thread>
 
 namespace fs = std::filesystem;
 
@@ -13,7 +14,66 @@ TapeManager::TapeManager(std::string input_tape_name, size_t ram_bytes) {
     this->input_tape_name = input_tape_name;
     this->ram_bytes = ram_bytes;
 
+    parseConfig();
     createTmpTapes();
+}
+
+std::vector<std::string> split(const std::string& str, char delimiter) {
+    std::vector<std::string> result;
+    std::istringstream stream(str);
+    std::string token;
+
+    while (std::getline(stream, token, delimiter)) {
+        result.push_back(token);
+    }
+
+    return result;
+}
+
+int TapeManager::read_delay = -1;
+int TapeManager::write_delay = -1;
+int TapeManager::move_delay = -1;
+
+void TapeManager::parseConfig() {
+    std::ifstream config_file(CONFIG_FILE_NAME);
+    if (!config_file.is_open()) {
+        std::ostringstream oss;
+        oss << "Error reading config file: \'" << CONFIG_FILE_NAME << "\'.";
+        std::cerr << oss.str() << std::endl;
+        exit(1);
+    }
+
+    std::string line;
+    while (std::getline(config_file, line)) {
+        std::vector<std::string> tokens = split(line, ':');
+
+        if (tokens[0] == "read_delay")
+            read_delay = std::stoi(tokens[1]);
+        if (tokens[0] == "write_delay")
+            write_delay = std::stoi(tokens[1]);
+        if (tokens[0] == "move_delay")
+            move_delay = std::stoi(tokens[1]);
+    }
+    if (read_delay < 0 || write_delay < 0 || move_delay < 0) {
+        std::ostringstream oss;
+        oss << "Wrong config file: \'" << CONFIG_FILE_NAME
+            << "\'\nYou should pass `read_delay`, `write_delay` and `move_delay`"
+               " parameters in config file. \nSyntax: <parameter>:<value> (in nanoseconds, new line for each param).";
+        std::cerr << oss.str() << std::endl;
+        exit(1);
+    }
+}
+
+int TapeManager::getReadDelay() {
+    return read_delay;
+}
+
+int TapeManager::getWriteDelay() {
+    return write_delay;
+}
+
+int TapeManager::getMoveDelay() {
+    return move_delay;
 }
 
 void TapeManager::clearTmpDir(std::string dir_name) {
@@ -63,6 +123,9 @@ void TapeManager::writeChunk(int32_t chunk[], size_t chunk_size, int32_t elems_i
     for (size_t j = 0; j < elems_in_chunk; j++) {
         tmp_tape << chunk[j] << std::endl;
     }
+    std::this_thread::sleep_for(std::chrono::nanoseconds(getMoveDelay() * (elems_in_chunk - 1))); // emulate tape delays
+    std::this_thread::sleep_for(std::chrono::nanoseconds(getWriteDelay() * elems_in_chunk));
+
     tmp_tape.close();
 }
 
@@ -84,6 +147,9 @@ void TapeManager::createTmpTapes() {
     int32_t tmp_tapes_count = 0;
 
     while (input_tape_file >> number) {
+        std::this_thread::sleep_for(std::chrono::nanoseconds(getMoveDelay())); // emulate tape delays
+        std::this_thread::sleep_for(std::chrono::nanoseconds(getReadDelay()));
+
         chunk[idx] = number;
         elems_in_chunk++;
         idx++;
