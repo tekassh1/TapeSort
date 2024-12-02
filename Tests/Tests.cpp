@@ -13,6 +13,7 @@ public:
             config_file << "read_delay: 0\n";
             config_file << "write_delay: 0\n";
             config_file << "move_delay: 0\n";
+            config_file << "rewind_delay: 0\n";
             config_file.close();
         } else {
             throw std::runtime_error("Failed to create config file");

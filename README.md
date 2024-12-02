@@ -17,6 +17,7 @@
 read_delay: 1
 write_delay: 2
 move_delay: 3
+rewind_delay: 4
 ```
 
 Задержка задается в наносекундах.

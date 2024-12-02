@@ -70,26 +70,16 @@ void TapeManager::parseConfig() {
             write_delay = std::stoi(tokens[1]);
         if (tokens[0] == "move_delay")
             move_delay = std::stoi(tokens[1]);
+        if (tokens[0] == "rewind_delay")
+            rewind_delay = std::stoi(tokens[1]);
     }
-    if (read_delay < 0 || write_delay < 0 || move_delay < 0) {
+    if (read_delay < 0 || write_delay < 0 || move_delay < 0 || rewind_delay < 0) {
         std::ostringstream oss;
         oss << "Wrong config file: \'" << CONFIG_FILE_NAME
-            << "\'\nYou should pass `read_delay`, `write_delay` and `move_delay`"
+            << "\'\nYou should pass `read_delay`, `write_delay`, `move_delay`, `rewind_delay`"
                " parameters in config file. \nSyntax: <parameter>:<value> (in nanoseconds, new line for each param).";
         throw std::runtime_error(oss.str());
     }
-}
-
-int TapeManager::getReadDelay() {
-    return read_delay;
-}
-
-int TapeManager::getWriteDelay() {
-    return write_delay;
-}
-
-int TapeManager::getMoveDelay() {
-    return move_delay;
 }
 
 void TapeManager::emulateReadDelay() {
@@ -112,6 +102,10 @@ void TapeManager::emulateSequentialWriteDelay(int repeats) {
     std::this_thread::sleep_for(std::chrono::nanoseconds(repeats * write_delay));
 }
 
+void TapeManager::emulateRewindDelay() {
+    std::this_thread::sleep_for(std::chrono::nanoseconds(rewind_delay));
+}
+
 void TapeManager::closeTmp() {
     for (auto& tape : tmp_tapes) {
         tape.close();
@@ -130,6 +124,7 @@ void TapeManager::prepareTapes() {
             }
 
             tmp_tapes.push_back(std::move(tmp_tape));
+            emulateRewindDelay();
         }
     }
 }
@@ -193,7 +188,6 @@ void TapeManager::createTmpTapes() {
 
     createTmpDir();
 
-    int32_t number;
     int32_t chunck_size = ram_bytes / sizeof(int32_t);
 
     size_t idx = 0;
@@ -201,10 +195,11 @@ void TapeManager::createTmpTapes() {
     int32_t elems_in_chunk = 0;
     int32_t tmp_tapes_count = 0;
 
-    while (input_tape_file >> number) {
+    std::optional<int32_t> number = readFromInputTape();
+    while (number.has_value()) {
         emulateReadDelay();
 
-        chunk[idx] = number;
+        chunk[idx] = number.value();
         elems_in_chunk++;
         idx++;
 
@@ -215,6 +210,8 @@ void TapeManager::createTmpTapes() {
             elems_in_chunk = 0;
             tmp_tapes_count++;
         }
+
+        number = readFromInputTape();
     }
     if (elems_in_chunk)
         writeChunk(chunk, elems_in_chunk, tmp_tapes_count);
@@ -222,6 +219,8 @@ void TapeManager::createTmpTapes() {
 }
 
 std::optional<int32_t> TapeManager::readFromTmpTape(int tape_idx) {
+    emulateReadDelay();
+
     int32_t number;
     if (tmp_tapes[tape_idx] >> number) {
         return std::make_optional(number);
@@ -230,13 +229,19 @@ std::optional<int32_t> TapeManager::readFromTmpTape(int tape_idx) {
 }
 
 void TapeManager::writeToOutTape(int32_t value) {
+    emulateWriteDelay();
+
     out << value << std::endl;
 }
 
-int32_t TapeManager::readFromInputTape() {
+std::optional<int32_t> TapeManager::readFromInputTape() {
+    emulateReadDelay();
+
     int32_t value;
-    in >> value;
-    return value;
+    if(in >> value) {
+        return std::make_optional(value);
+    }
+    return std::nullopt;
 }
 
 TapeManager::~TapeManager() {

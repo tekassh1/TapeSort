@@ -15,9 +15,10 @@ class ITapeManager {
     virtual void emulateWriteDelay() = 0;
     virtual void emulateSequentialReadDelay(int repeats) = 0;
     virtual void emulateSequentialWriteDelay(int repeats) = 0;
+    virtual void emulateRewindDelay() = 0;
 
     virtual std::optional<int32_t> readFromTmpTape(int tape_idx) = 0;
-    virtual int32_t readFromInputTape() = 0;
+    virtual std::optional<int32_t> readFromInputTape() = 0;
     virtual void writeToOutTape(int32_t value) = 0;
 };
 

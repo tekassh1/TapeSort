@@ -27,8 +27,6 @@ void Sorter::sortTapes() {
     checkEnoughRam();
 
     for (size_t i = 0; i < tapeManager.getTempTapesAmount(); i++) {
-        tapeManager.emulateReadDelay();
-
         std::optional<int32_t> num = tapeManager.readFromTmpTape(i);
         heap.insert(HeapNode{.number = num.value(), .file_idx = i});
     }
@@ -38,15 +36,11 @@ void Sorter::sortTapes() {
         if (!min.has_value())
             break;
 
-        tapeManager.emulateWriteDelay();
-
         tapeManager.writeToOutTape(min->number);
 
         std::optional<int32_t> num = tapeManager.readFromTmpTape(min->file_idx);
 
         if (num.has_value()) {
-            tapeManager.emulateReadDelay();
-
             heap.insert(HeapNode{.number = num.value(), .file_idx = min->file_idx});
         }
     }

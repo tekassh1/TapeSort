@@ -31,6 +31,7 @@ class TapeManager : public ITapeManager {
     int read_delay = -1;
     int write_delay = -1;
     int move_delay = -1;
+    int rewind_delay = -1;
 
     void parseConfig() override;
 
@@ -43,17 +44,14 @@ class TapeManager : public ITapeManager {
 
     TapeManager(std::string input_tape_name, std::string out_tape_name, size_t ram_bytes);
 
-    int getReadDelay();
-    int getWriteDelay();
-    int getMoveDelay();
-
     void emulateReadDelay() override;
     void emulateWriteDelay() override;
+    void emulateRewindDelay() override;
     void emulateSequentialReadDelay(int repeats) override;
     void emulateSequentialWriteDelay(int repeats) override;
 
     std::optional<int32_t> readFromTmpTape(int tape_idx) override;
-    int32_t readFromInputTape() override;
+    std::optional<int32_t> readFromInputTape() override;
     void writeToOutTape(int32_t value) override;
 
     ~TapeManager();
