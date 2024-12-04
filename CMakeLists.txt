@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 include(FetchContent)
 
@@ -21,5 +22,14 @@ file(GLOB_RECURSE SOURCES src/*.cpp)
 add_executable(TapeSort ${SOURCES})
 
 target_include_directories(TapeSort PRIVATE include)
+
+file(GLOB_RECURSE LIB_SOURCES src/*.cpp)
+list(REMOVE_ITEM LIB_SOURCES ${CMAKE_SOURCE_DIR}/src/main.cpp)
+
+add_library(TapeSortl STATIC
+        ${LIB_SOURCES}
+        ${CMAKE_SOURCE_DIR}/include
+)
+target_include_directories(TapeSortl PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 add_subdirectory(Tests)
