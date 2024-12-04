@@ -24,12 +24,12 @@ add_executable(TapeSort ${SOURCES})
 target_include_directories(TapeSort PRIVATE include)
 
 file(GLOB_RECURSE LIB_SOURCES src/*.cpp)
-list(REMOVE_ITEM LIB_SOURCES ${CMAKE_SOURCE_DIR}/src/main.cpp)
+list(REMOVE_ITEM LIB_SOURCES src/main.cpp)
 
 add_library(TapeSortl STATIC
         ${LIB_SOURCES}
-        ${CMAKE_SOURCE_DIR}/include
+        include
 )
-target_include_directories(TapeSortl PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(TapeSortl PUBLIC include)
 
 add_subdirectory(Tests)
