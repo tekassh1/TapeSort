@@ -26,7 +26,7 @@ void Sorter::sortTapes() {
 
     checkEnoughRam();
 
-    for (size_t i = 0; i < tapeManager.getTempTapesAmount(); i++) {
+    for (uint16_t i = 0; i < tapeManager.getTempTapesAmount(); i++) {
         std::optional<int32_t> num = tapeManager.readFromTmpTape(i);
         heap.insert(HeapNode{.number = num.value(), .file_idx = i});
     }
